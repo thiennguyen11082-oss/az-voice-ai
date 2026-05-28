@@ -1,4 +1,19 @@
-export default function CallsPage() {
+import { supabase } from "../lib/supabase";
+
+export default async function CallsPage() {
+  const { data: calls, error } = await supabase
+    .from("calls")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return (
+      <main className="p-8 text-red-500">
+        Error loading calls.
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-100 p-8 text-gray-900">
 
@@ -8,25 +23,34 @@ export default function CallsPage() {
 
       <div className="bg-white rounded-2xl shadow p-6">
 
-        <div className="border rounded-xl p-4 mb-4">
-          <p className="font-semibold">
-            John Smith
-          </p>
-
+        {calls?.length === 0 && (
           <p className="text-gray-500">
-            Duration: 3m 24s
+            No calls found yet.
           </p>
-        </div>
+        )}
 
-        <div className="border rounded-xl p-4">
-          <p className="font-semibold">
-            Sarah Johnson
-          </p>
+        {calls?.map((call) => (
+          <div
+            key={call.id}
+            className="border rounded-xl p-4 mb-4"
+          >
+            <p className="font-semibold">
+              {call.customer_name || "Unknown caller"}
+            </p>
 
-          <p className="text-gray-500">
-            Duration: 1m 12s
-          </p>
-        </div>
+            <p className="text-gray-500">
+              Phone: {call.phone_number || "No phone number"}
+            </p>
+
+            <p className="text-gray-500">
+              Duration: {call.duration || "N/A"}
+            </p>
+
+            <p className="text-gray-500 mt-2">
+              {call.transcript || "No transcript yet."}
+            </p>
+          </div>
+        ))}
 
       </div>
 
