@@ -1,102 +1,110 @@
-import Link from "next/link";
-export default function Home() {
+import { supabase } from "@/app/lib/supabase";
+
+export default async function Home() {
+  const { count: totalCalls } = await supabase
+    .from("calls")
+    .select("*", { count: "exact", head: true });
+
+  const { count: missedCalls } = await supabase
+    .from("missed_calls")
+    .select("*", { count: "exact", head: true });
+
+  const { count: voiceMessages } = await supabase
+    .from("voice_messages")
+    .select("*", { count: "exact", head: true });
+
+  const { count: websiteVisitors } = await supabase
+    .from("website_visitors")
+    .select("*", { count: "exact", head: true });
+
+  const { data: recentCalls } = await supabase
+    .from("calls")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
   return (
-    <main className="min-h-screen bg-gray-100 text-gray-900">
+    <section className="p-8 text-gray-900">
+      <h2 className="text-4xl font-bold mb-2">
+        Dashboard
+      </h2>
 
-      {/* Sidebar */}
-      
+      <p className="text-gray-500 mb-10">
+        AI Business Receptionist Overview
+      </p>
 
-      {/* Main Content */}
-      <section className="flex-1 p-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-2xl shadow p-6">
+          <p className="text-gray-500 mb-2">
+            Total Calls
+          </p>
 
-        <h2 className="text-4xl font-bold mb-2">
-          Dashboard
+          <h2 className="text-4xl font-bold">
+            {totalCalls || 0}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <p className="text-gray-500 mb-2">
+            Missed Calls
+          </p>
+
+          <h2 className="text-4xl font-bold text-red-500">
+            {missedCalls || 0}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <p className="text-gray-500 mb-2">
+            Voice Messages
+          </p>
+
+          <h2 className="text-4xl font-bold text-blue-500">
+            {voiceMessages || 0}
+          </h2>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow p-6">
+          <p className="text-gray-500 mb-2">
+            Website Visitors
+          </p>
+
+          <h2 className="text-4xl font-bold text-green-500">
+            {websiteVisitors || 0}
+          </h2>
+        </div>
+      </div>
+
+      <div className="mt-10 bg-white rounded-2xl shadow p-6">
+        <h2 className="text-2xl font-bold mb-4">
+          Recent Calls
         </h2>
 
-        <p className="text-gray-500 mb-10">
-          AI Business Receptionist Overview
-        </p>
+        {recentCalls?.length === 0 && (
+          <p className="text-gray-500">
+            No recent calls found.
+          </p>
+        )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-gray-500 mb-2">
-              Total Calls
+        {recentCalls?.map((call) => (
+          <div
+            key={call.id}
+            className="border rounded-xl p-4 mb-3"
+          >
+            <p className="font-semibold">
+              {call.customer_name}
             </p>
 
-            <h2 className="text-4xl font-bold">
-              124
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-gray-500 mb-2">
-              Missed Calls
+            <p className="text-gray-500">
+              {call.phone_number}
             </p>
 
-            <h2 className="text-4xl font-bold text-red-500">
-              9
-            </h2>
-          </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-gray-500 mb-2">
-              Voice Messages
+            <p className="text-gray-500">
+              {call.transcript}
             </p>
-
-            <h2 className="text-4xl font-bold text-blue-500">
-              31
-            </h2>
           </div>
-
-          <div className="bg-white rounded-2xl shadow p-6">
-            <p className="text-gray-500 mb-2">
-              Website Visitors
-            </p>
-
-            <h2 className="text-4xl font-bold text-green-500">
-              1,284
-            </h2>
-          </div>
-
-        </div>
-
-        {/* Recent Calls */}
-        <div className="bg-white rounded-2xl shadow p-6 mt-10">
-
-          <h2 className="text-2xl font-bold mb-6">
-            Recent Calls
-          </h2>
-
-          <div className="space-y-4">
-
-            <div className="border rounded-xl p-4">
-              <p className="font-semibold">
-                John Smith
-              </p>
-
-              <p className="text-gray-500">
-                Asked about website pricing.
-              </p>
-            </div>
-
-            <div className="border rounded-xl p-4">
-              <p className="font-semibold">
-                Sarah Johnson
-              </p>
-
-              <p className="text-gray-500">
-                Missed call — voicemail converted to text.
-              </p>
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-    </main>
+        ))}
+      </div>
+    </section>
   );
 }
