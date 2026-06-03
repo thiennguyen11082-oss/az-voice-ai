@@ -9,9 +9,10 @@ export default async function CallsPage({
   const search = params.search || "";
 
   let query = supabase
-    .from("calls")
-    .select("*")
-    .order("created_at", { ascending: false });
+  .from("calls")
+  .select("*")
+  .eq("business_id", 1)
+  .order("created_at", { ascending: false });
 
   if (search) {
     query = query.or(

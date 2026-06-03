@@ -4,6 +4,7 @@ export default async function MessagesPage() {
   const { data: messages, error } = await supabase
     .from("voice_messages")
     .select("*")
+    .eq("business_id", 1)
     .order("created_at", { ascending: false });
 
   if (error) {

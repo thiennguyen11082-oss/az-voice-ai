@@ -2,9 +2,10 @@ import { supabase } from "@/app/lib/supabase";
 
 export default async function MissedPage() {
   const { data: missedCalls, error } = await supabase
-    .from("missed_calls")
-    .select("*")
-    .order("created_at", { ascending: false });
+  .from("missed_calls")
+  .select("*")
+  .eq("business_id", 1)
+  .order("created_at", { ascending: false });
 
   if (error) {
     return <main className="p-8 text-red-500">Error loading missed calls.</main>;

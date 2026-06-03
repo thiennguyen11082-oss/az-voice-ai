@@ -16,6 +16,12 @@ export default function Sidebar() {
         >
           Dashboard
         </Link>
+        <Link
+          href="/my-business"
+          className="px-4 py-3 rounded-xl hover:bg-gray-800 transition"
+        >
+          My Business
+        </Link>
 
         <Link
           href="/calls"

@@ -23,10 +23,10 @@ async function saveSettings(formData: FormData) {
 
 export default async function SettingsPage() {
   const { data: settings } = await supabase
-    .from("business_settings")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(1);
+  .from("business_settings")
+  .select("*")
+  .eq("business_id", 1)
+  .limit(1);
 
   const current = settings?.[0];
 

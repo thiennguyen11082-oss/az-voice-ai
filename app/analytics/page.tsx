@@ -2,9 +2,10 @@ import { supabase } from "@/app/lib/supabase";
 
 export default async function AnalyticsPage() {
   const { data: visitors, error } = await supabase
-    .from("website_visitors")
-    .select("*")
-    .order("created_at", { ascending: false });
+  .from("website_visitors")
+  .select("*")
+  .eq("business_id", 1)
+  .order("created_at", { ascending: false });
 
   if (error) {
     return <main className="p-8 text-red-500">Error loading analytics.</main>;
