@@ -7,8 +7,11 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [businessName, setBusinessName] = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+
   async function handleSignup() {
-    const { error } = await authClient.auth.signUp({
+    const { data, error } = await authClient.auth.signUp({
       email,
       password,
     });
@@ -18,7 +21,50 @@ export default function SignupPage() {
       return;
     }
 
-    alert("Account created. Check Supabase Users page.");
+    const user = data.user;
+
+    if (!user) {
+      alert("Account created, but user not found.");
+      return;
+    }
+
+    const { data: business } = await authClient
+      .from("businesses")
+      .insert([
+        {
+          business_name: businessName,
+          business_phone: businessPhone,
+        },
+      ])
+      .select()
+      .single();
+
+    if (!business) {
+      alert("Business creation failed.");
+      return;
+    }
+
+    await authClient.from("user_businesses").insert([
+      {
+        user_id: user.id,
+        business_id: business.id,
+      },
+    ]);
+
+    await authClient.from("business_settings").insert([
+      {
+        business_id: business.id,
+        business_name: businessName,
+        business_phone: businessPhone,
+        greeting: `Thank you for calling ${businessName}. How can I help you today?`,
+        business_hours: "",
+        services: "",
+        faqs: "",
+      },
+    ]);
+
+    alert("Account and business created successfully.");
+    window.location.href = "/login";
   }
 
   return (
@@ -27,6 +73,22 @@ export default function SignupPage() {
         <h1 className="text-3xl font-bold mb-6">
           Sign Up
         </h1>
+
+        <input
+          type="text"
+          placeholder="Business Name"
+          className="w-full border rounded-xl p-3 mb-4"
+          value={businessName}
+          onChange={(e) => setBusinessName(e.target.value)}
+        />
+
+        <input
+          type="text"
+          placeholder="Business Phone"
+          className="w-full border rounded-xl p-3 mb-4"
+          value={businessPhone}
+          onChange={(e) => setBusinessPhone(e.target.value)}
+        />
 
         <input
           type="email"

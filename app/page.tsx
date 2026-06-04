@@ -1,27 +1,58 @@
-import { supabase } from "@/app/lib/supabase";
+"use client";
 
-export default async function Home() {
-  const { count: totalCalls } = await supabase
-    .from("calls")
-    .select("*", { count: "exact", head: true });
+import { useEffect, useState } from "react";
+import { authClient } from "@/app/lib/auth";
+import { getCurrentBusinessId } from "@/app/lib/getBusiness";
 
-  const { count: missedCalls } = await supabase
-    .from("missed_calls")
-    .select("*", { count: "exact", head: true });
+export default function Home() {
+  const [totalCalls, setTotalCalls] = useState(0);
+  const [missedCalls, setMissedCalls] = useState(0);
+  const [voiceMessages, setVoiceMessages] = useState(0);
+  const [websiteVisitors, setWebsiteVisitors] = useState(0);
+  const [recentCalls, setRecentCalls] = useState<any[]>([]);
 
-  const { count: voiceMessages } = await supabase
-    .from("voice_messages")
-    .select("*", { count: "exact", head: true });
+  useEffect(() => {
+    async function loadDashboard() {
+      const businessId = await getCurrentBusinessId();
 
-  const { count: websiteVisitors } = await supabase
-    .from("website_visitors")
-    .select("*", { count: "exact", head: true });
+      if (!businessId) return;
 
-  const { data: recentCalls } = await supabase
-    .from("calls")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(5);
+      const { count: callsCount } = await authClient
+        .from("calls")
+        .select("*", { count: "exact", head: true })
+        .eq("business_id", businessId);
+
+      const { count: missedCount } = await authClient
+        .from("missed_calls")
+        .select("*", { count: "exact", head: true })
+        .eq("business_id", businessId);
+
+      const { count: messagesCount } = await authClient
+        .from("voice_messages")
+        .select("*", { count: "exact", head: true })
+        .eq("business_id", businessId);
+
+      const { count: visitorsCount } = await authClient
+        .from("website_visitors")
+        .select("*", { count: "exact", head: true })
+        .eq("business_id", businessId);
+
+      const { data: recent } = await authClient
+        .from("calls")
+        .select("*")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      setTotalCalls(callsCount || 0);
+      setMissedCalls(missedCount || 0);
+      setVoiceMessages(messagesCount || 0);
+      setWebsiteVisitors(visitorsCount || 0);
+      setRecentCalls(recent || []);
+    }
+
+    loadDashboard();
+  }, []);
 
   return (
     <section className="p-8 text-gray-900">
@@ -40,7 +71,7 @@ export default async function Home() {
           </p>
 
           <h2 className="text-4xl font-bold">
-            {totalCalls || 0}
+            {totalCalls}
           </h2>
         </div>
 
@@ -50,7 +81,7 @@ export default async function Home() {
           </p>
 
           <h2 className="text-4xl font-bold text-red-500">
-            {missedCalls || 0}
+            {missedCalls}
           </h2>
         </div>
 
@@ -60,7 +91,7 @@ export default async function Home() {
           </p>
 
           <h2 className="text-4xl font-bold text-blue-500">
-            {voiceMessages || 0}
+            {voiceMessages}
           </h2>
         </div>
 
@@ -70,7 +101,7 @@ export default async function Home() {
           </p>
 
           <h2 className="text-4xl font-bold text-green-500">
-            {websiteVisitors || 0}
+            {websiteVisitors}
           </h2>
         </div>
       </div>
@@ -80,13 +111,13 @@ export default async function Home() {
           Recent Calls
         </h2>
 
-        {recentCalls?.length === 0 && (
+        {recentCalls.length === 0 && (
           <p className="text-gray-500">
             No recent calls found.
           </p>
         )}
 
-        {recentCalls?.map((call) => (
+        {recentCalls.map((call) => (
           <div
             key={call.id}
             className="border rounded-xl p-4 mb-3"

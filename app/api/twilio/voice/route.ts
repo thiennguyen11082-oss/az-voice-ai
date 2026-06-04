@@ -3,30 +3,62 @@ import { supabase } from "@/app/lib/supabase";
 export async function POST(request: Request) {
   const formData = await request.formData();
 
-  const phoneNumber = formData.get("From")?.toString();
+  const fromNumber = formData.get("From")?.toString();
+  const toNumber = formData.get("To")?.toString();
 
-  await supabase
-    .from("calls")
-    .insert([
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("twilio_phone", toNumber)
+    .single();
+
+  if (!business) {
+    return new Response(
+      `
+<Response>
+  <Say>
+    This phone number is not configured.
+  </Say>
+</Response>
+`,
       {
-        customer_name: "Phone Caller",
-        phone_number: phoneNumber,
-        duration: "In progress",
-        transcript: "Call started",
-      },
-    ]);
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
+
+  const { data: settings } = await supabase
+    .from("business_settings")
+    .select("*")
+    .eq("business_id", business.id)
+    .single();
+
+  await supabase.from("calls").insert([
+    {
+      business_id: business.id,
+      customer_name: "Phone Caller",
+      phone_number: fromNumber,
+      duration: "In Progress",
+      transcript: "Call Started",
+    },
+  ]);
+
+  const greeting =
+    settings?.greeting_message ||
+    `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
 
   const twiml = `
 <Response>
   <Say voice="alice">
-    Hello. Thank you for calling NextGen AI.
-    Please leave a message after the beep.
+    ${greeting}
   </Say>
 
   <Record
     maxLength="60"
-    transcribe="true"
-    transcribeCallback="https://lay-prairie-tuesday-boot.trycloudflare.com/api/twilio/recording"
+    action="https://islands-these-gather-group.trycloudflare.com/api/twilio/recording"
+    method="POST"
   />
 
   <Say>

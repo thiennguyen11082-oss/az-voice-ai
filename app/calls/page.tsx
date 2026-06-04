@@ -1,50 +1,58 @@
-import { supabase } from "@/app/lib/supabase";
+"use client";
 
-export default async function CallsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ search?: string }>;
-}) {
-  const params = await searchParams;
-  const search = params.search || "";
+import { useEffect, useState } from "react";
+import { authClient } from "@/app/lib/auth";
+import { getCurrentBusinessId } from "@/app/lib/getBusiness";
 
-  let query = supabase
-  .from("calls")
-  .select("*")
-  .eq("business_id", 1)
-  .order("created_at", { ascending: false });
+export default function CallsPage() {
+  const [calls, setCalls] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
 
-  if (search) {
-    query = query.or(
-      `customer_name.ilike.%${search}%,phone_number.ilike.%${search}%,transcript.ilike.%${search}%`
-    );
-  }
+  useEffect(() => {
+    async function loadCalls() {
+      const businessId = await getCurrentBusinessId();
 
-  const { data: calls, error } = await query;
+      if (!businessId) return;
 
-  if (error) {
-    return <main className="p-8 text-red-500">Error loading calls.</main>;
-  }
+      const { data } = await authClient
+        .from("calls")
+        .select("*")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false });
+
+      setCalls(data || []);
+    }
+
+    loadCalls();
+  }, []);
+
+  const filteredCalls = calls.filter((call) => {
+    const text = `
+      ${call.customer_name}
+      ${call.phone_number}
+      ${call.transcript}
+    `.toLowerCase();
+
+    return text.includes(search.toLowerCase());
+  });
 
   return (
     <main className="min-h-screen bg-gray-100 p-8 text-gray-900">
       <h1 className="text-4xl font-bold mb-6">Calls</h1>
 
-      <form className="mb-6">
-        <input
-          name="search"
-          defaultValue={search}
-          placeholder="Search by name, phone number, or transcript..."
-          className="w-full bg-white border rounded-xl p-4"
-        />
-      </form>
+      <input
+        placeholder="Search by name, phone number, or transcript..."
+        className="w-full bg-white border rounded-xl p-4 mb-6"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       <div className="bg-white rounded-2xl shadow p-6">
-        {calls?.length === 0 && (
+        {filteredCalls.length === 0 && (
           <p className="text-gray-500">No calls found.</p>
         )}
 
-        {calls?.map((call) => (
+        {filteredCalls.map((call) => (
           <div key={call.id} className="border rounded-xl p-4 mb-4">
             <p className="font-semibold">
               {call.customer_name || "Unknown caller"}

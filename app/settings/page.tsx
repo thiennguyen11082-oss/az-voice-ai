@@ -1,103 +1,123 @@
-import { supabase } from "@/app/lib/supabase";
-import { revalidatePath } from "next/cache";
+"use client";
 
-async function saveSettings(formData: FormData) {
-  "use server";
+import { useEffect, useState } from "react";
+import { authClient } from "@/app/lib/auth";
+import { getCurrentBusinessId } from "@/app/lib/getBusiness";
 
-  const id = formData.get("id");
+export default function SettingsPage() {
+  const [settings, setSettings] = useState<any>(null);
 
-  await supabase
-    .from("business_settings")
-    .update({
-      business_name: formData.get("business_name"),
-      business_phone: formData.get("business_phone"),
-      greeting: formData.get("greeting"),
-      business_hours: formData.get("business_hours"),
-      services: formData.get("services"),
-      faqs: formData.get("faqs"),
-    })
-    .eq("id", id);
+  useEffect(() => {
+    async function loadSettings() {
+      const businessId = await getCurrentBusinessId();
 
-  revalidatePath("/settings");
-}
+      if (!businessId) return;
 
-export default async function SettingsPage() {
-  const { data: settings } = await supabase
-  .from("business_settings")
-  .select("*")
-  .eq("business_id", 1)
-  .limit(1);
+      const { data } = await authClient
+        .from("business_settings")
+        .select("*")
+        .eq("business_id", businessId)
+        .single();
 
-  const current = settings?.[0];
+      setSettings(data);
+    }
+
+    loadSettings();
+  }, []);
+
+  async function saveSettings() {
+    if (!settings) return;
+
+    await authClient
+      .from("business_settings")
+      .update(settings)
+      .eq("id", settings.id);
+
+    alert("Settings saved.");
+  }
+
+  if (!settings) {
+    return <main className="p-8 text-gray-900">Loading settings...</main>;
+  }
 
   return (
     <main className="min-h-screen bg-gray-100 p-8 text-gray-900">
       <h1 className="text-4xl font-bold mb-6">Business Settings</h1>
 
-      <form
-        action={saveSettings}
-        className="bg-white rounded-2xl shadow p-6 space-y-6"
-      >
-        <input type="hidden" name="id" value={current?.id || ""} />
-
+      <div className="bg-white rounded-2xl shadow p-6 space-y-6">
         <div>
           <label className="block mb-2 font-semibold">Business Name</label>
           <input
-            name="business_name"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.business_name || ""}
+            value={settings.business_name || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, business_name: e.target.value })
+            }
           />
         </div>
 
         <div>
           <label className="block mb-2 font-semibold">Business Phone</label>
           <input
-            name="business_phone"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.business_phone || ""}
+            value={settings.business_phone || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, business_phone: e.target.value })
+            }
           />
         </div>
 
         <div>
           <label className="block mb-2 font-semibold">AI Greeting</label>
           <textarea
-            name="greeting"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.greeting || ""}
+            value={settings.greeting || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, greeting: e.target.value })
+            }
           />
         </div>
 
         <div>
           <label className="block mb-2 font-semibold">Business Hours</label>
           <textarea
-            name="business_hours"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.business_hours || ""}
+            value={settings.business_hours || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, business_hours: e.target.value })
+            }
           />
         </div>
 
         <div>
           <label className="block mb-2 font-semibold">Services</label>
           <textarea
-            name="services"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.services || ""}
+            value={settings.services || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, services: e.target.value })
+            }
           />
         </div>
 
         <div>
           <label className="block mb-2 font-semibold">FAQs</label>
           <textarea
-            name="faqs"
             className="w-full border rounded-xl p-3"
-            defaultValue={current?.faqs || ""}
+            value={settings.faqs || ""}
+            onChange={(e) =>
+              setSettings({ ...settings, faqs: e.target.value })
+            }
           />
         </div>
 
-        <button className="bg-black text-white rounded-xl px-6 py-3">
+        <button
+          onClick={saveSettings}
+          className="bg-black text-white rounded-xl px-6 py-3"
+        >
           Save Settings
         </button>
-      </form>
+      </div>
     </main>
   );
 }
