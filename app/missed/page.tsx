@@ -14,9 +14,10 @@ export default function MissedPage() {
       if (!businessId) return;
 
       const { data } = await authClient
-        .from("missed_calls")
+        .from("calls")
         .select("*")
         .eq("business_id", businessId)
+        .eq("status", "in_progress")
         .order("created_at", { ascending: false });
 
       setMissedCalls(data || []);
@@ -45,7 +46,7 @@ export default function MissedPage() {
             </p>
 
             <p className="text-gray-500">
-              Missed at: {call.missed_time || "Unknown time"}
+              Time: {call.created_at}
             </p>
           </div>
         ))}

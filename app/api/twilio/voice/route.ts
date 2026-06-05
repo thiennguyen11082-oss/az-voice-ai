@@ -5,6 +5,7 @@ export async function POST(request: Request) {
 
   const fromNumber = formData.get("From")?.toString();
   const toNumber = formData.get("To")?.toString();
+  const callSid = formData.get("CallSid")?.toString();
 
   const { data: business } = await supabase
     .from("businesses")
@@ -16,9 +17,7 @@ export async function POST(request: Request) {
     return new Response(
       `
 <Response>
-  <Say>
-    This phone number is not configured.
-  </Say>
+  <Say>This phone number is not configured.</Say>
 </Response>
 `,
       {
@@ -42,24 +41,37 @@ export async function POST(request: Request) {
       phone_number: fromNumber,
       duration: "In Progress",
       transcript: "Call Started",
+      call_sid: callSid,
+      status: "in_progress",
     },
   ]);
 
   const greeting =
-    settings?.greeting_message ||
+    settings?.greeting ||
     `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
 
   const twiml = `
 <Response>
+  <Gather
+  input="speech"
+  action="https://quad-twist-converted-canberra.trycloudflare.com/api/twilio/ai"
+  method="POST"
+  speechTimeout="auto"
+>
   <Say voice="alice">
     ${greeting}
   </Say>
+</Gather>
 
-  <Record
-    maxLength="60"
-    action="https://islands-these-gather-group.trycloudflare.com/api/twilio/recording"
-    method="POST"
-  />
+<Say voice="alice">
+  I did not hear anything. Please leave a message after the beep.
+</Say>
+
+<Record
+  maxLength="60"
+  action="https://quad-twist-converted-canberra.trycloudflare.com/api/twilio/recording"
+  method="POST"
+/>
 
   <Say>
     Thank you. Goodbye.

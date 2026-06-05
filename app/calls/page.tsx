@@ -54,9 +54,21 @@ export default function CallsPage() {
 
         {filteredCalls.map((call) => (
           <div key={call.id} className="border rounded-xl p-4 mb-4">
-            <p className="font-semibold">
-              {call.customer_name || "Unknown caller"}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold">
+                {call.customer_name}
+              </p>
+
+              {call.status === "completed" ? (
+                <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                  COMPLETED
+                </span>
+              ) : (
+                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                  MISSED
+                </span>
+              )}
+            </div>
 
             <p className="text-gray-500">
               Phone: {call.phone_number || "No phone number"}

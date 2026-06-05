@@ -30,8 +30,15 @@ export default function SettingsPage() {
 
     await authClient
       .from("business_settings")
-      .update(settings)
-      .eq("id", settings.id);
+      .update({
+        business_name: settings.business_name,
+        business_phone: settings.business_phone,
+        greeting: settings.greeting,
+        business_hours: settings.business_hours,
+        services: settings.services,
+        faqs: settings.faqs,
+      })
+      .eq("business_id", settings.business_id);
 
     alert("Settings saved.");
   }

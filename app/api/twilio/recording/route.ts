@@ -5,6 +5,7 @@ export async function POST(request: Request) {
 
   const fromNumber = formData.get("From")?.toString();
   const toNumber = formData.get("To")?.toString();
+  const callSid = formData.get("CallSid")?.toString();
   const recordingUrl = formData.get("RecordingUrl")?.toString();
   const transcriptionText = formData.get("TranscriptionText")?.toString();
 
@@ -18,17 +19,29 @@ export async function POST(request: Request) {
     return new Response("Business not found", { status: 404 });
   }
 
-  await supabase.from("voice_messages").insert([
-    {
-      business_id: business.id,
-      customer_name: "Phone Caller",
-      phone_number: fromNumber,
-      message:
-        transcriptionText ||
-        "Voice message received. Transcript not ready yet.",
-      recording_url: recordingUrl,
-    },
-  ]);
+  if (recordingUrl) {
+    await supabase.from("voice_messages").insert([
+      {
+        business_id: business.id,
+        customer_name: "Phone Caller",
+        phone_number: fromNumber,
+        message:
+          transcriptionText ||
+          "Voice message received. Transcript not ready yet.",
+        recording_url: recordingUrl,
+      },
+    ]);
+
+    await supabase
+      .from("calls")
+      .update({
+        status: "completed",
+        duration: "Completed",
+        transcript:
+          transcriptionText || "Voice message received.",
+      })
+      .eq("call_sid", callSid);
+  }
 
   return new Response("OK");
 }
