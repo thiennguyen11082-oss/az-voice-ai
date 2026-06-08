@@ -34,9 +34,11 @@ export default function SettingsPage() {
         business_name: settings.business_name,
         business_phone: settings.business_phone,
         greeting: settings.greeting,
+        voicemail_greeting: settings.voicemail_greeting,
         business_hours: settings.business_hours,
         services: settings.services,
         faqs: settings.faqs,
+        reception_mode: settings.reception_mode,
       })
       .eq("business_id", settings.business_id);
 
@@ -73,7 +75,20 @@ export default function SettingsPage() {
             }
           />
         </div>
+        <div>
+          <label className="block mb-2 font-semibold">Reception Mode</label>
 
+          <select
+            className="w-full border rounded-xl p-3"
+            value={settings.reception_mode || "ai"}
+            onChange={(e) =>
+              setSettings({ ...settings, reception_mode: e.target.value })
+            }
+          >
+            <option value="ai">AI Receptionist</option>
+            <option value="voicemail">Voicemail Only</option>
+          </select>
+        </div>      
         <div>
           <label className="block mb-2 font-semibold">AI Greeting</label>
           <textarea
@@ -81,6 +96,22 @@ export default function SettingsPage() {
             value={settings.greeting || ""}
             onChange={(e) =>
               setSettings({ ...settings, greeting: e.target.value })
+            }
+          />
+        </div>
+        <div>
+          <label className="block mb-2 font-semibold">
+            Voicemail Greeting
+          </label>
+
+          <textarea
+            className="w-full border rounded-xl p-3"
+            value={settings.voicemail_greeting || ""}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                voicemail_greeting: e.target.value,
+              })
             }
           />
         </div>

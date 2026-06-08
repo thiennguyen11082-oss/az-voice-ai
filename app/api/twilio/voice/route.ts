@@ -1,5 +1,7 @@
 import { supabase } from "@/app/lib/supabase";
 
+const BASE_URL = "https://spoken-like-writing-amsterdam.trycloudflare.com";
+
 export async function POST(request: Request) {
   const formData = await request.formData();
 
@@ -17,7 +19,7 @@ export async function POST(request: Request) {
     return new Response(
       `
 <Response>
-  <Say>This phone number is not configured.</Say>
+  <Say voice="alice">This phone number is not configured.</Say>
 </Response>
 `,
       {
@@ -48,32 +50,58 @@ export async function POST(request: Request) {
 
   const greeting =
     settings?.greeting ||
-    `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
+    `Thank you for calling ${business.business_name}. How can I help you today?`;
+  if (settings?.reception_mode === "voicemail") {
+  const voicemailTwiml = `
+<Response>
+  <Say voice="alice">
+    ${settings?.voicemail_greeting || greeting}
+  </Say>
 
+  <Record
+    maxLength="60"
+    action="${BASE_URL}/api/twilio/recording"
+    method="POST"
+  />
+
+  <Say voice="alice">
+    Thank you. Goodbye.
+  </Say>
+</Response>
+`;
+
+  return new Response(voicemailTwiml, {
+    headers: {
+      "Content-Type": "text/xml",
+    },
+  });
+}
   const twiml = `
 <Response>
   <Gather
-  input="speech"
-  action="https://quad-twist-converted-canberra.trycloudflare.com/api/twilio/ai"
-  method="POST"
-  speechTimeout="auto"
->
+    input="speech"
+    action="${BASE_URL}/api/twilio/ai"
+    method="POST"
+    speechTimeout="2"
+    timeout="6"
+    language="en-US"
+  >
+    <Say voice="alice">
+      ${greeting}
+    </Say>
+  </Gather>
+
   <Say voice="alice">
-    ${greeting}
+    I did not hear anything. Please leave a message after the beep.
   </Say>
-</Gather>
 
-<Say voice="alice">
-  I did not hear anything. Please leave a message after the beep.
-</Say>
+  <Record
+    maxLength="60"
+    action="${BASE_URL}/api/twilio/recording"
+    method="POST"
+  />
 
-<Record
-  maxLength="60"
-  action="https://quad-twist-converted-canberra.trycloudflare.com/api/twilio/recording"
-  method="POST"
-/>
-
-  <Say>
+  <Say voice="alice">
     Thank you. Goodbye.
   </Say>
 </Response>
