@@ -1,6 +1,6 @@
 import { supabase } from "@/app/lib/supabase";
 
-const BASE_URL = "https://spoken-like-writing-amsterdam.trycloudflare.com";
+const BASE_URL = "https://find-mechanism-cadillac-numerous.trycloudflare.com";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   const toNumber = formData.get("To")?.toString();
   const callSid = formData.get("CallSid")?.toString();
 
+  // 1. Find the business by Twilio phone number
   const { data: business } = await supabase
     .from("businesses")
     .select("*")
@@ -30,12 +31,14 @@ export async function POST(request: Request) {
     );
   }
 
+  // 2. Load business settings
   const { data: settings } = await supabase
     .from("business_settings")
     .select("*")
     .eq("business_id", business.id)
     .single();
 
+  // 3. Save call as in progress
   await supabase.from("calls").insert([
     {
       business_id: business.id,
@@ -48,14 +51,21 @@ export async function POST(request: Request) {
     },
   ]);
 
+  // 4. Set default greeting
   const greeting =
     settings?.greeting ||
     `Thank you for calling ${business.business_name}. How can I help you today?`;
+
+  // 5. Voicemail-only mode
   if (settings?.reception_mode === "voicemail") {
-  const voicemailTwiml = `
+    const voicemailGreeting =
+      settings?.voicemail_greeting ||
+      `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
+
+    const voicemailTwiml = `
 <Response>
   <Say voice="alice">
-    ${settings?.voicemail_greeting || greeting}
+    ${voicemailGreeting}
   </Say>
 
   <Record
@@ -70,13 +80,15 @@ export async function POST(request: Request) {
 </Response>
 `;
 
-  return new Response(voicemailTwiml, {
-    headers: {
-      "Content-Type": "text/xml",
-    },
-  });
-}
-  const twiml = `
+    return new Response(voicemailTwiml, {
+      headers: {
+        "Content-Type": "text/xml",
+      },
+    });
+  }
+
+  // 6. AI receptionist mode
+  const aiTwiml = `
 <Response>
   <Gather
     input="speech"
@@ -107,7 +119,7 @@ export async function POST(request: Request) {
 </Response>
 `;
 
-  return new Response(twiml, {
+  return new Response(aiTwiml, {
     headers: {
       "Content-Type": "text/xml",
     },

@@ -5,7 +5,77 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const BASE_URL = "https://spoken-like-writing-amsterdam.trycloudflare.com";
+const BASE_URL = "https://find-mechanism-cadillac-numerous.trycloudflare.com";
+
+function escapeXml(text: string) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function callerWantsToEnd(text: string) {
+  const cleanText = text
+    .toLowerCase()
+    .replace(/[.,!?]/g, "")
+    .trim();
+
+  const endingPhrases = [
+    "no",
+    "no thanks",
+    "no thank you",
+    "nothing else",
+    "that's all",
+    "thats all",
+    "that is all",
+    "bye",
+    "goodbye",
+  ];
+
+  return endingPhrases.some((phrase) => {
+    return cleanText === phrase || cleanText.startsWith(phrase);
+  });
+}
+
+function formatPhoneForSpeech(phone: string) {
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) return phone;
+
+  return digits.split("").join(", ");
+}
+
+function makeNumbersSpeakable(text: string) {
+  return text.replace(/\+?\d[\d\s().-]{6,}\d/g, (match) => {
+    return formatPhoneForSpeech(match);
+  });
+}
+
+function callerProvidedCallbackInfo(text: string) {
+  const cleanText = text.toLowerCase();
+
+  const hasName =
+    cleanText.includes("my name is") ||
+    cleanText.includes("this is") ||
+    cleanText.includes("i am") ||
+    cleanText.includes("i'm");
+
+  const hasPhoneNumber = /\d{3,}/.test(cleanText);
+
+  const hasReason =
+    cleanText.includes("service") ||
+    cleanText.includes("looking for") ||
+    cleanText.includes("need") ||
+    cleanText.includes("want") ||
+    cleanText.includes("interested in") ||
+    cleanText.includes("appointment") ||
+    cleanText.includes("price") ||
+    cleanText.includes("pricing");
+
+  return hasName && (hasPhoneNumber || hasReason);
+}
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -13,7 +83,6 @@ export async function POST(request: Request) {
   const speechResult = formData.get("SpeechResult")?.toString() || "";
   const callSid = formData.get("CallSid")?.toString();
   const toNumber = formData.get("To")?.toString();
-  const lowerSpeech = speechResult.toLowerCase();
 
   const { data: currentCall } = await supabase
     .from("calls")
@@ -23,17 +92,43 @@ export async function POST(request: Request) {
 
   const oldTranscript = currentCall?.transcript || "Call Started";
 
-  if (
-    lowerSpeech.includes("no") ||
-    lowerSpeech.includes("no thanks") ||
-    lowerSpeech.includes("nothing else") ||
-    lowerSpeech.includes("that's all") ||
-    lowerSpeech.includes("that is all") ||
-    lowerSpeech.includes("bye")
-  ) {
+  // 1. If caller says nothing after AI already talked, complete the call
+  if (!speechResult.trim()) {
     const finalTranscript = `${oldTranscript}
 
-Customer: ${speechResult || "No response"}
+Customer: No response
+
+AI: Thank you for calling. Goodbye.`;
+
+    await supabase
+      .from("calls")
+      .update({
+        status: "completed",
+        duration: "Completed",
+        transcript: finalTranscript,
+      })
+      .eq("call_sid", callSid);
+
+    return new Response(
+      `
+<Response>
+  <Say voice="alice">Thank you for calling. Goodbye.</Say>
+  <Hangup />
+</Response>
+`,
+      {
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
+
+  // 2. End call if caller is done
+  if (callerWantsToEnd(speechResult)) {
+    const finalTranscript = `${oldTranscript}
+
+Customer: ${speechResult}
 
 AI: Thank you for calling. Have a great day.`;
 
@@ -50,6 +145,7 @@ AI: Thank you for calling. Have a great day.`;
       `
 <Response>
   <Say voice="alice">Thank you for calling. Have a great day.</Say>
+  <Hangup />
 </Response>
 `,
       {
@@ -60,15 +156,42 @@ AI: Thank you for calling. Have a great day.`;
     );
   }
 
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("twilio_phone", toNumber)
-    .single();
+  // 3. If caller already gave callback info, confirm and continue
+  if (callerProvidedCallbackInfo(speechResult)) {
+    const updatedTranscript = `${oldTranscript}
 
-  if (!business) {
+Customer: ${speechResult}
+
+AI: Thank you. I will pass this information to the business, and someone will check and call you back. Is there anything else I can help you with?`;
+
+    await supabase
+      .from("calls")
+      .update({
+        transcript: updatedTranscript,
+      })
+      .eq("call_sid", callSid);
+
     return new Response(
-      `<Response><Say voice="alice">Business not found.</Say></Response>`,
+      `
+<Response>
+  <Gather
+    input="speech"
+    action="${BASE_URL}/api/twilio/ai"
+    method="POST"
+    speechTimeout="3"
+    timeout="10"
+    actionOnEmptyResult="true"
+    language="en-US"
+  >
+    <Say voice="alice">
+      Thank you. I will pass this information to the business, and someone will check and call you back. Is there anything else I can help you with?
+    </Say>
+  </Gather>
+
+  <Say voice="alice">Thank you for calling. Goodbye.</Say>
+  <Hangup />
+</Response>
+`,
       {
         headers: {
           "Content-Type": "text/xml",
@@ -77,68 +200,111 @@ AI: Thank you for calling. Have a great day.`;
     );
   }
 
+  // 4. Find business by Twilio number
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("twilio_phone", toNumber)
+    .single();
+
+  if (!business) {
+    return new Response(
+      `<Response><Say voice="alice">Business not found.</Say><Hangup /></Response>`,
+      {
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
+
+  // 5. Load business settings
   const { data: settings } = await supabase
     .from("business_settings")
     .select("*")
     .eq("business_id", business.id)
     .single();
 
+  const businessPhoneForSpeech = formatPhoneForSpeech(
+    settings?.business_phone || ""
+  );
+
   const updatedTranscriptBeforeAI = `${oldTranscript}
 
-Customer: ${speechResult || "No response"}`;
+Customer: ${speechResult}`;
 
+  // 6. AI receptionist rules
   const aiResponse = await openai.responses.create({
     model: "gpt-5-mini",
     input: `
-You are a helpful AI receptionist for this business.
+You are an AI receptionist for ${settings?.business_name || business.business_name}.
 
+Your job:
+- Answer customer questions using ONLY the business information below.
+- Keep every answer short, simple, and natural.
+- Do not repeat yourself.
+- Do not make up prices, services, policies, availability, or details.
+- If the customer asks about a price and the price is not clearly listed, do not guess.
+- If you are unsure, say you are not sure and ask for the caller's name, phone number, and reason for calling so the business can call them back.
+- If you ask for callback information, stop there. Do not also ask "anything else?"
+- If the customer gives their name, phone number, or reason for calling, thank them and say someone will call them back.
+- If the customer asks for something outside the business information, collect callback information.
+- Sound like a real receptionist, not a robot.
+- Do not say the same sentence again and again.
+- Do not end every response the exact same way.
+- If you say the business phone number, say it digit by digit.
+- Use this spoken phone format when needed: ${businessPhoneForSpeech}
+
+Business information:
 Business name: ${settings?.business_name || business.business_name}
-Business phone: ${settings?.business_phone || ""}
-Business hours: ${settings?.business_hours || ""}
-Services: ${settings?.services || ""}
-FAQs: ${settings?.faqs || ""}
+Business phone: ${settings?.business_phone || "Not provided"}
+Business phone spoken format: ${businessPhoneForSpeech || "Not provided"}
+Business hours: ${settings?.business_hours || "Not provided"}
+Services: ${settings?.services || "Not provided"}
+FAQs: ${settings?.faqs || "Not provided"}
 
 Customer said:
-${speechResult || "No response"}
+${speechResult}
 
-Rules:
-- Answer briefly.
-- Sound like a real receptionist.
-- Do not make up prices or services.
-- If you do not know, ask for their name and phone number so the business can call back.
-- End every answer with: "Would you like help with anything else?"
-    `,
+Reply with only what the receptionist should say.
+`,
   });
 
-  const reply = aiResponse.output_text;
+  const reply =
+    aiResponse.output_text ||
+    "I am not sure about that. May I get your name, phone number, and reason for calling so someone can call you back?";
 
   const updatedTranscriptAfterAI = `${updatedTranscriptBeforeAI}
 
 AI: ${reply}`;
 
+  // 7. Save transcript
   await supabase
     .from("calls")
     .update({
       transcript: updatedTranscriptAfterAI,
     })
     .eq("call_sid", callSid);
-    
+
+  const spokenReply = makeNumbersSpeakable(reply);
+
+  // 8. Listen again
   const twiml = `
 <Response>
-  <Say voice="alice">${reply}</Say>
-
   <Gather
     input="speech"
     action="${BASE_URL}/api/twilio/ai"
     method="POST"
-    speechTimeout="2"
-    timeout="6"
+    speechTimeout="3"
+    timeout="10"
+    actionOnEmptyResult="true"
     language="en-US"
   >
-    <Say voice="alice">You can ask another question now.</Say>
+    <Say voice="alice">${escapeXml(spokenReply)}</Say>
   </Gather>
 
   <Say voice="alice">Thank you for calling. Goodbye.</Say>
+  <Hangup />
 </Response>
 `;
 
