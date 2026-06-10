@@ -52,7 +52,29 @@ function makeNumbersSpeakable(text: string) {
     return formatPhoneForSpeech(match);
   });
 }
+async function createCallSummary(transcript: string) {
+  const summaryResponse = await openai.responses.create({
+    model: "gpt-5-mini",
+    input: `
+Create a short call summary for the business owner.
 
+Rules:
+- 1 to 2 sentences only.
+- Mention what the caller wanted.
+- Mention callback info if the caller gave name, phone, or service.
+- Do not invent details.
+- Keep it simple.
+
+Call transcript:
+${transcript}
+`,
+  });
+
+  return (
+    summaryResponse.output_text ||
+    "Call completed. No clear summary available."
+  );
+}
 function callerProvidedCallbackInfo(text: string) {
   const cleanText = text.toLowerCase();
 
@@ -94,35 +116,38 @@ export async function POST(request: Request) {
 
   // 1. If caller says nothing after AI already talked, complete the call
   if (!speechResult.trim()) {
-    const finalTranscript = `${oldTranscript}
+  const finalTranscript = `${oldTranscript}
 
 Customer: No response
 
 AI: Thank you for calling. Goodbye.`;
 
-    await supabase
-      .from("calls")
-      .update({
-        status: "completed",
-        duration: "Completed",
-        transcript: finalTranscript,
-      })
-      .eq("call_sid", callSid);
+  const summary = await createCallSummary(finalTranscript);
 
-    return new Response(
-      `
+  await supabase
+    .from("calls")
+    .update({
+      status: "completed",
+      duration: "Completed",
+      transcript: finalTranscript,
+      summary: summary,
+    })
+    .eq("call_sid", callSid);
+
+  return new Response(
+    `
 <Response>
   <Say voice="alice">Thank you for calling. Goodbye.</Say>
   <Hangup />
 </Response>
 `,
-      {
-        headers: {
-          "Content-Type": "text/xml",
-        },
-      }
-    );
-  }
+    {
+      headers: {
+        "Content-Type": "text/xml",
+      },
+    }
+  );
+}
 
   // 2. End call if caller is done
   if (callerWantsToEnd(speechResult)) {
@@ -132,12 +157,15 @@ Customer: ${speechResult}
 
 AI: Thank you for calling. Have a great day.`;
 
+    const summary = await createCallSummary(finalTranscript);
+
     await supabase
       .from("calls")
       .update({
         status: "completed",
         duration: "Completed",
         transcript: finalTranscript,
+        summary: summary,
       })
       .eq("call_sid", callSid);
 
@@ -165,11 +193,14 @@ Customer: ${speechResult}
 AI: Thank you. I will pass this information to the business, and someone will check and call you back. Is there anything else I can help you with?`;
 
     await supabase
-      .from("calls")
-      .update({
-        transcript: updatedTranscript,
-      })
-      .eq("call_sid", callSid);
+    .from("calls")
+    .update({
+      status: "in_progress",
+      duration: "Needs Follow Up",
+      transcript: updatedTranscript,
+      reviewed: false,
+    })
+    .eq("call_sid", callSid);
 
     return new Response(
       `
