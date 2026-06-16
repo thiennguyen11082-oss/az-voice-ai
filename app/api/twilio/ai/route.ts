@@ -5,7 +5,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const BASE_URL = "https://find-mechanism-cadillac-numerous.trycloudflare.com";
+const BASE_URL = "https://institute-families-expand-touched.trycloudflare.com";
 
 function escapeXml(text: string) {
   return text
@@ -52,6 +52,7 @@ function makeNumbersSpeakable(text: string) {
     return formatPhoneForSpeech(match);
   });
 }
+
 async function createCallSummary(transcript: string) {
   const summaryResponse = await openai.responses.create({
     model: "gpt-5-mini",
@@ -75,6 +76,7 @@ ${transcript}
     "Call completed. No clear summary available."
   );
 }
+
 function callerProvidedCallbackInfo(text: string) {
   const cleanText = text.toLowerCase();
 
@@ -114,42 +116,110 @@ export async function POST(request: Request) {
 
   const oldTranscript = currentCall?.transcript || "Call Started";
 
-  // 1. If caller says nothing after AI already talked, complete the call
+  // 1. Find business by Twilio number
+  const { data: business } = await supabase
+    .from("businesses")
+    .select("*")
+    .eq("twilio_phone", toNumber)
+    .single();
+
+  if (!business) {
+    return new Response(
+      `<Response><Say voice="alice">Business not found.</Say><Hangup /></Response>`,
+      {
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
+
+  // 2. Load business settings
+  const { data: settings } = await supabase
+    .from("business_settings")
+    .select("*")
+    .eq("business_id", business.id)
+    .single();
+
+  const businessPlan = business.plan || "starter";
+  const aiAllowed = businessPlan === "pro" || businessPlan === "business";
+
+  // 3. Protect AI route from Starter plan
+  if (!aiAllowed) {
+    const voicemailGreeting =
+      settings?.voicemail_greeting ||
+      `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
+
+    await supabase
+      .from("calls")
+      .update({
+        status: "in_progress",
+        duration: "Voicemail",
+        transcript: `${oldTranscript}
+
+System: AI route blocked because business is on Starter plan. Sent caller to voicemail.`,
+      })
+      .eq("call_sid", callSid);
+
+    return new Response(
+      `
+<Response>
+  <Say voice="alice">${escapeXml(voicemailGreeting)}</Say>
+
+  <Record
+    maxLength="60"
+    action="${BASE_URL}/api/twilio/recording"
+    method="POST"
+  />
+
+  <Say voice="alice">Thank you. Goodbye.</Say>
+  <Hangup />
+</Response>
+`,
+      {
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
+
+  // 4. If caller says nothing after AI already talked, complete the call
   if (!speechResult.trim()) {
-  const finalTranscript = `${oldTranscript}
+    const finalTranscript = `${oldTranscript}
 
 Customer: No response
 
 AI: Thank you for calling. Goodbye.`;
 
-  const summary = await createCallSummary(finalTranscript);
+    const summary = await createCallSummary(finalTranscript);
 
-  await supabase
-    .from("calls")
-    .update({
-      status: "completed",
-      duration: "Completed",
-      transcript: finalTranscript,
-      summary: summary,
-    })
-    .eq("call_sid", callSid);
+    await supabase
+      .from("calls")
+      .update({
+        status: "completed",
+        duration: "Completed",
+        transcript: finalTranscript,
+        summary: summary,
+      })
+      .eq("call_sid", callSid);
 
-  return new Response(
-    `
+    return new Response(
+      `
 <Response>
   <Say voice="alice">Thank you for calling. Goodbye.</Say>
   <Hangup />
 </Response>
 `,
-    {
-      headers: {
-        "Content-Type": "text/xml",
-      },
-    }
-  );
-}
+      {
+        headers: {
+          "Content-Type": "text/xml",
+        },
+      }
+    );
+  }
 
-  // 2. End call if caller is done
+  // 5. End call if caller is done
   if (callerWantsToEnd(speechResult)) {
     const finalTranscript = `${oldTranscript}
 
@@ -184,7 +254,7 @@ AI: Thank you for calling. Have a great day.`;
     );
   }
 
-  // 3. If caller already gave callback info, confirm and continue
+  // 6. If caller already gave callback info, confirm and continue
   if (callerProvidedCallbackInfo(speechResult)) {
     const updatedTranscript = `${oldTranscript}
 
@@ -193,14 +263,14 @@ Customer: ${speechResult}
 AI: Thank you. I will pass this information to the business, and someone will check and call you back. Is there anything else I can help you with?`;
 
     await supabase
-    .from("calls")
-    .update({
-      status: "in_progress",
-      duration: "Needs Follow Up",
-      transcript: updatedTranscript,
-      reviewed: false,
-    })
-    .eq("call_sid", callSid);
+      .from("calls")
+      .update({
+        status: "in_progress",
+        duration: "Needs Follow Up",
+        transcript: updatedTranscript,
+        reviewed: false,
+      })
+      .eq("call_sid", callSid);
 
     return new Response(
       `
@@ -231,31 +301,6 @@ AI: Thank you. I will pass this information to the business, and someone will ch
     );
   }
 
-  // 4. Find business by Twilio number
-  const { data: business } = await supabase
-    .from("businesses")
-    .select("*")
-    .eq("twilio_phone", toNumber)
-    .single();
-
-  if (!business) {
-    return new Response(
-      `<Response><Say voice="alice">Business not found.</Say><Hangup /></Response>`,
-      {
-        headers: {
-          "Content-Type": "text/xml",
-        },
-      }
-    );
-  }
-
-  // 5. Load business settings
-  const { data: settings } = await supabase
-    .from("business_settings")
-    .select("*")
-    .eq("business_id", business.id)
-    .single();
-
   const businessPhoneForSpeech = formatPhoneForSpeech(
     settings?.business_phone || ""
   );
@@ -264,7 +309,7 @@ AI: Thank you. I will pass this information to the business, and someone will ch
 
 Customer: ${speechResult}`;
 
-  // 6. AI receptionist rules
+  // 7. AI receptionist rules
   const aiResponse = await openai.responses.create({
     model: "gpt-5-mini",
     input: `
@@ -309,7 +354,7 @@ Reply with only what the receptionist should say.
 
 AI: ${reply}`;
 
-  // 7. Save transcript
+  // 8. Save transcript
   await supabase
     .from("calls")
     .update({
@@ -319,7 +364,7 @@ AI: ${reply}`;
 
   const spokenReply = makeNumbersSpeakable(reply);
 
-  // 8. Listen again
+  // 9. Listen again
   const twiml = `
 <Response>
   <Gather

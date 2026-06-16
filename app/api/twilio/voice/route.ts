@@ -1,6 +1,6 @@
 import { supabase } from "@/app/lib/supabase";
 
-const BASE_URL = "https://find-mechanism-cadillac-numerous.trycloudflare.com";
+const BASE_URL = "https://institute-families-expand-touched.trycloudflare.com";
 
 export async function POST(request: Request) {
   const formData = await request.formData();
@@ -38,7 +38,16 @@ export async function POST(request: Request) {
     .eq("business_id", business.id)
     .single();
 
-  // 3. Save call as in progress
+  const businessPlan = business.plan || "starter";
+  const isStarterPlan = businessPlan === "starter";
+
+  // 3. Decide real reception mode based on plan
+  // Starter is always voicemail only, even if database says AI.
+  const receptionMode = isStarterPlan
+    ? "voicemail"
+    : settings?.reception_mode || "ai";
+
+  // 4. Save call as in progress first
   await supabase.from("calls").insert([
     {
       business_id: business.id,
@@ -48,20 +57,21 @@ export async function POST(request: Request) {
       transcript: "Call Started",
       call_sid: callSid,
       status: "in_progress",
+      reviewed: false,
     },
   ]);
 
-  // 4. Set default greeting
+  // 5. Set default greetings
   const greeting =
     settings?.greeting ||
     `Thank you for calling ${business.business_name}. How can I help you today?`;
 
-  // 5. Voicemail-only mode
-  if (settings?.reception_mode === "voicemail") {
-    const voicemailGreeting =
-      settings?.voicemail_greeting ||
-      `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
+  const voicemailGreeting =
+    settings?.voicemail_greeting ||
+    `Thank you for calling ${business.business_name}. Please leave a message after the beep.`;
 
+  // 6. Voicemail-only mode
+  if (receptionMode === "voicemail") {
     const voicemailTwiml = `
 <Response>
   <Say voice="alice">
@@ -87,7 +97,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // 6. AI receptionist mode
+  // 7. AI receptionist mode
   const aiTwiml = `
 <Response>
   <Gather
