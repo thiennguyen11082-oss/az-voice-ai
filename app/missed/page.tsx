@@ -211,10 +211,10 @@ export default function MissedPage() {
 
   function getReviewFilterButtonClass(filterName: string) {
     if (reviewFilter === filterName) {
-      return "bg-black text-white";
+      return "bg-gradient-to-r from-cyan-300 via-teal-400 to-cyan-500 text-slate-800 shadow-[0_0_14px_rgba(45,212,191,0.75)]";
     }
 
-    return "bg-white text-gray-700 border hover:bg-gray-100";
+    return "bg-white/80 text-slate-800 hover:bg-cyan-100";
   }
 
   function clearFilters() {
@@ -225,214 +225,236 @@ export default function MissedPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-100 p-8 text-gray-900">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="text-4xl font-bold">Missed Calls</h1>
-
-        <div className="flex items-center gap-2">
-          {selectMode && (
-            <button
-              onClick={selectAllVisibleCalls}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium"
-            >
-              Select All
-            </button>
-          )}
-
-          <button
-            onClick={toggleSelectMode}
-            className={
-              selectMode
-                ? "bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl font-medium"
-                : "bg-white border hover:bg-gray-100 text-gray-800 px-4 py-2 rounded-xl font-medium"
-            }
-          >
-            {selectMode ? "Exit Select" : "Select"}
-          </button>
-        </div>
+    <main className="min-h-screen text-white">
+      <div className="bg-black/45 px-5 py-5 backdrop-blur-sm">
+        <h1 className="text-5xl font-black tracking-wide text-cyan-50 drop-shadow-[0_0_10px_rgba(255,255,255,0.45)]">
+          Missed Calls
+        </h1>
       </div>
 
-      <div className="mb-4 grid grid-cols-1 lg:grid-cols-4 gap-3">
-        <input
-          placeholder="Search by name, phone number, or missed call..."
-          className="bg-white border rounded-xl p-4 lg:col-span-2"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            Start Date
-          </label>
+      <div className="bg-cyan-300/70 px-5 py-4 text-black backdrop-blur-md">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-6">
           <input
-            type="date"
-            className="w-full bg-white border rounded-xl p-4"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            placeholder="Search by name, phone number, or missed call,..."
+            className="rounded-full border-4 border-black bg-white/55 px-5 py-3 text-lg outline-none placeholder:text-slate-700 lg:col-span-4"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
+
+          <div>
+            <label className="mb-1 block text-base font-bold text-white drop-shadow">
+              Start Date
+            </label>
+
+            <input
+              type="date"
+              className="w-full rounded-full border-4 border-slate-700 bg-white/60 px-4 py-2 text-black outline-none"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-base font-bold text-white drop-shadow">
+              End Date
+            </label>
+
+            <input
+              type="date"
+              className="w-full rounded-full border-4 border-slate-700 bg-white/60 px-4 py-2 text-black outline-none"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            End Date
-          </label>
-          <input
-            type="date"
-            className="w-full bg-white border rounded-xl p-4"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+        <div className="mt-4">
+          <p className="mb-2 text-3xl font-semibold text-black">Reviewed</p>
+
+          <div className="flex flex-wrap gap-5">
+            <button
+              onClick={() => setReviewFilter("all")}
+              className={`rounded-full px-8 py-2 text-xl font-medium transition ${getReviewFilterButtonClass(
+                "all"
+              )}`}
+            >
+              All
+            </button>
+
+            <button
+              onClick={() => setReviewFilter("reviewed")}
+              className={`rounded-full px-8 py-2 text-xl font-medium transition ${getReviewFilterButtonClass(
+                "reviewed"
+              )}`}
+            >
+              Reviewed
+            </button>
+
+            <button
+              onClick={() => setReviewFilter("not_reviewed")}
+              className={`rounded-full px-8 py-2 text-xl font-medium transition ${getReviewFilterButtonClass(
+                "not_reviewed"
+              )}`}
+            >
+              Not Reviewed
+            </button>
+
+            {(search || startDate || endDate || reviewFilter !== "all") && (
+              <button
+                onClick={clearFilters}
+                className="rounded-full bg-black px-6 py-2 text-lg font-semibold text-white hover:bg-slate-800"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mb-6">
-        <p className="text-sm font-semibold text-gray-600 mb-2">Review</p>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setReviewFilter("all")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium ${getReviewFilterButtonClass(
-              "all"
-            )}`}
-          >
-            All
-          </button>
-
-          <button
-            onClick={() => setReviewFilter("reviewed")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium ${getReviewFilterButtonClass(
-              "reviewed"
-            )}`}
-          >
-            Reviewed
-          </button>
-
-          <button
-            onClick={() => setReviewFilter("not_reviewed")}
-            className={`px-4 py-2 rounded-xl text-sm font-medium ${getReviewFilterButtonClass(
-              "not_reviewed"
-            )}`}
-          >
-            Not Reviewed
-          </button>
-        </div>
-      </div>
-
-      {(search || startDate || endDate || reviewFilter !== "all") && (
-        <button
-          onClick={clearFilters}
-          className="mb-6 bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl"
-        >
-          Clear Filters
-        </button>
-      )}
-
-      {selectMode && (
-        <div className="mb-6 bg-white border rounded-2xl shadow p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold mr-2">
-              Selected: {selectedCallIds.length}
-            </p>
+      <div className="px-5 py-4">
+        <div className="mb-4 flex justify-end">
+          <div className="flex items-center gap-2">
+            {selectMode && (
+              <button
+                onClick={selectAllVisibleCalls}
+                className="rounded-full border-2 border-black bg-blue-100/95 px-5 py-2 font-semibold text-black shadow-lg hover:bg-cyan-200"
+              >
+                Select All
+              </button>
+            )}
 
             <button
-              onClick={clearSelectedCalls}
-              className="bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-xl text-sm font-medium"
+              onClick={toggleSelectMode}
+              className="rounded-full border-2 border-black bg-blue-100/95 px-5 py-2 font-semibold text-black shadow-lg hover:bg-cyan-200"
             >
-              Clear Selected
-            </button>
-
-            <button
-              onClick={() => bulkUpdateReviewed(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-sm font-medium"
-            >
-              Mark Reviewed
-            </button>
-
-            <button
-              onClick={() => bulkUpdateReviewed(false)}
-              className="bg-gray-700 hover:bg-gray-800 text-white px-3 py-2 rounded-xl text-sm font-medium"
-            >
-              Mark Not Reviewed
-            </button>
-
-            <button
-              onClick={bulkDeleteCalls}
-              className="bg-black hover:bg-red-700 text-white px-3 py-2 rounded-xl text-sm font-medium"
-            >
-              Delete Selected
+              {selectMode ? "Exit Select" : "Select"}
             </button>
           </div>
         </div>
-      )}
 
-      <div className="bg-white rounded-2xl shadow p-6">
-        {filteredMissedCalls.length === 0 && (
-          <p className="text-gray-500">No missed calls found.</p>
+        {selectMode && (
+          <div className="mb-4 rounded-[26px] border-4 border-black bg-white/70 p-4 text-black shadow-2xl backdrop-blur-md">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="mr-2 font-bold">
+                Selected: {selectedCallIds.length}
+              </p>
+
+              <button
+                onClick={clearSelectedCalls}
+                className="rounded-full bg-white px-4 py-2 text-sm font-bold hover:bg-gray-100"
+              >
+                Clear Selected
+              </button>
+
+              <button
+                onClick={() => bulkUpdateReviewed(true)}
+                className="rounded-full bg-blue-500 px-4 py-2 text-sm font-bold text-white hover:bg-blue-600"
+              >
+                Mark Reviewed
+              </button>
+
+              <button
+                onClick={() => bulkUpdateReviewed(false)}
+                className="rounded-full bg-slate-700 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+              >
+                Mark Not Reviewed
+              </button>
+
+              <button
+                onClick={bulkDeleteCalls}
+                className="rounded-full bg-black px-4 py-2 text-sm font-bold text-white hover:bg-red-700"
+              >
+                Delete Selected
+              </button>
+            </div>
+          </div>
         )}
 
-        {filteredMissedCalls.map((call) => {
-          const isSelected = selectedCallIds.includes(call.id);
+        {filteredMissedCalls.length === 0 && (
+          <div className="rounded-[28px] border-4 border-black bg-white/65 p-6 text-black backdrop-blur-md">
+            No missed calls found.
+          </div>
+        )}
 
-          return (
-            <div key={call.id} className="border rounded-xl p-4 mb-4">
-              <div className="flex items-start gap-4">
-                {selectMode && (
-                  <button
-                    onClick={() => toggleSelectedCall(call.id)}
-                    className={
-                      isSelected
-                        ? "mt-1 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold"
-                        : "mt-1 w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center hover:border-blue-500"
-                    }
-                    title={isSelected ? "Selected" : "Select missed call"}
-                  >
-                    {isSelected ? "✓" : ""}
-                  </button>
-                )}
+        <div className="space-y-4">
+          {filteredMissedCalls.map((call) => {
+            const isSelected = selectedCallIds.includes(call.id);
 
-                <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">
-                          {call.customer_name || "Unknown caller"}
+            return (
+              <div
+                key={call.id}
+                className="rounded-[28px] border-4 border-black bg-cyan-100/70 p-6 text-black shadow-2xl backdrop-blur-md"
+              >
+                <div className="flex items-start gap-4">
+                  {selectMode && (
+                    <button
+                      onClick={() => toggleSelectedCall(call.id)}
+                      className={
+                        isSelected
+                          ? "mt-1 flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 font-black text-white"
+                          : "mt-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-black bg-white hover:bg-cyan-100"
+                      }
+                      title={isSelected ? "Selected" : "Select missed call"}
+                    >
+                      {isSelected ? "✓" : ""}
+                    </button>
+                  )}
+
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-2xl font-black">
+                            {call.customer_name || "Unknown Caller"}
+                          </p>
+
+                          <span className="rounded-full border-2 border-black bg-red-500 px-5 py-1 text-sm font-black uppercase text-black">
+                            Missed
+                          </span>
+                        </div>
+
+                        <p className="text-lg">
+                          Phone: {call.phone_number || "No phone number"}
                         </p>
 
-                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                          MISSED
-                        </span>
+                        <p className="text-lg">
+                          Missed Time: {formatCallTime(call.created_at)}
+                        </p>
                       </div>
 
-                      <p className="text-gray-500 mt-1">
-                        Phone: {call.phone_number || "No phone number"}
-                      </p>
+                      <button
+                        onClick={() => toggleReviewed(call)}
+                        className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-black bg-white/70 text-2xl hover:bg-cyan-100"
+                        title={call.reviewed ? "Reviewed" : "Mark as reviewed"}
+                      >
+                        {call.reviewed ? "✅" : "○"}
+                      </button>
+                    </div>
 
-                      <p className="text-gray-500">
-                        Missed Time: {formatCallTime(call.created_at)}
+                    <div className="mt-4 rounded-[24px] border-4 border-black bg-white/95 p-5">
+                      <p className="mb-1 text-xl font-black">Missed Call</p>
+
+                      <p className="text-lg">
+                        {call.summary ||
+                          "Caller did not leave enough information. Follow up if needed."}
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => toggleReviewed(call)}
-                      className="text-2xl w-10 h-10 flex items-center justify-center rounded-full border hover:bg-gray-100"
-                      title={call.reviewed ? "Reviewed" : "Mark as reviewed"}
-                    >
-                      {call.reviewed ? "✅" : "○"}
-                    </button>
-                  </div>
-
-                  <div className="mt-4 bg-red-50 border border-red-100 rounded-xl p-4">
-                    <p className="font-semibold mb-1">Missed Call</p>
-                    <p className="text-gray-700">
-                      {call.summary ||
-                        "Caller did not leave enough information. Follow up if needed."}
-                    </p>
+                    {call.reviewed ? (
+                      <p className="mt-4 text-2xl font-black tracking-widest text-lime-300">
+                        REVIEWED
+                      </p>
+                    ) : (
+                      <p className="mt-4 text-2xl font-black tracking-widest text-orange-500">
+                        NOT REVIEWED
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </main>
   );

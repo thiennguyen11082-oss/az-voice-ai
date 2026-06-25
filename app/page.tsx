@@ -103,215 +103,175 @@ export default function Home() {
     });
   }
 
-  function getStatusBadgeClass(status: string) {
-    if (status === "completed") {
-      return "bg-green-100 text-green-700";
-    }
-
-    if (status === "missed") {
-      return "bg-red-100 text-red-700";
-    }
-
-    return "bg-yellow-100 text-yellow-700";
+  function getStatusLabel(status: string) {
+    if (status === "completed") return "COMPLETED";
+    if (status === "missed") return "MISSED";
+    return "NEEDS FOLLOW UP";
   }
 
-  function getStatusLabel(status: string) {
-    if (status === "completed") return "Completed";
-    if (status === "missed") return "Missed";
-    return "Needs Follow Up";
+  function getStatusColor(status: string) {
+    if (status === "completed") return "text-lime-300";
+    if (status === "missed") return "text-red-400";
+    return "text-yellow-300";
   }
 
   function getPlanLabel(plan: string) {
-    if (plan === "pro") return "Pro";
-    if (plan === "business") return "Business";
-    return "Starter";
-  }
-
-  function getPlanDescription(plan: string) {
-    if (plan === "pro") {
-      return "AI Receptionist enabled";
-    }
-
-    if (plan === "business") {
-      return "Advanced features enabled";
-    }
-
-    return "Voicemail-only plan";
-  }
-
-  function getPlanColorClass(plan: string) {
-    if (plan === "pro") {
-      return "text-green-600";
-    }
-
-    if (plan === "business") {
-      return "text-blue-600";
-    }
-
-    return "text-orange-500";
+    if (plan === "pro") return "PRO";
+    if (plan === "business") return "BUSINESS";
+    return "STARTER";
   }
 
   return (
-    <section className="min-h-screen bg-gray-100 p-8 text-gray-900">
-      <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
+    <section className="min-h-screen px-5 py-5 text-white">
+      <div className="mb-8 flex items-center justify-between">
+        <h1 className="text-5xl font-black tracking-wide drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+          Dashboard
+        </h1>
 
-      <p className="text-gray-500 mb-10">
-        AI Business Receptionist Overview
-      </p>
+        <p className="text-2xl text-cyan-100 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+          AI Business Receptionist Overview
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Current Plan</p>
+      <div className="grid grid-cols-4 gap-x-12 gap-y-5">
+        <div className="rounded-[28px] border border-white/30 bg-yellow-700/35 px-8 py-4 text-center shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold text-white">Current Plan</p>
 
-          <h2
-            className={`text-4xl font-bold capitalize ${getPlanColorClass(
-              businessPlan
-            )}`}
-          >
+          <h2 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-blue-500 to-green-400">
             {getPlanLabel(businessPlan)}
           </h2>
-
-          <p className="text-sm text-gray-500 mt-2">
-            {getPlanDescription(businessPlan)}
-          </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Total Calls</p>
-          <h2 className="text-4xl font-bold">{totalCalls}</h2>
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Total Calls</p>
+
+          <h2 className="text-5xl font-black">{totalCalls}</h2>
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Completed Calls</p>
-          <h2 className="text-4xl font-bold text-green-600">
-            {completedCalls}
-          </h2>
-        </div>
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Reviewed</p>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Needs Follow Up</p>
-          <h2 className="text-4xl font-bold text-yellow-600">
-            {inProgressCalls}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Missed Calls</p>
-          <h2 className="text-4xl font-bold text-red-500">{missedCalls}</h2>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Voice Messages</p>
-          <h2 className="text-4xl font-bold text-blue-500">
-            {voiceMessages}
-          </h2>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Reviewed Calls</p>
-          <h2 className="text-4xl font-bold text-green-600">
+          <h2 className="text-5xl font-black text-green-600">
             {reviewedCalls}
           </h2>
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6">
-          <p className="text-gray-500 mb-2">Not Reviewed</p>
-          <h2 className="text-4xl font-bold text-orange-500">
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Not Reviewed</p>
+
+          <h2 className="text-5xl font-black text-red-500">
             {notReviewedCalls}
           </h2>
         </div>
 
-        <div className="bg-white rounded-2xl shadow p-6 md:col-span-4">
-          <p className="text-gray-500 mb-2">Action Needed</p>
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Completed Calls</p>
 
-          <h2 className="text-4xl font-bold text-purple-600">
-            {inProgressCalls + missedCalls + notReviewedCalls}
+          <h2 className="text-5xl font-black text-green-600">
+            {completedCalls}
           </h2>
+        </div>
 
-          <p className="text-sm text-gray-500 mt-2">
-            Calls that may need owner attention.
-          </p>
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Needs Follow Up</p>
+
+          <h2 className="text-5xl font-black text-yellow-600">
+            {inProgressCalls}
+          </h2>
+        </div>
+
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Missed Calls</p>
+
+          <h2 className="text-5xl font-black text-red-500">
+            {missedCalls}
+          </h2>
+        </div>
+
+        <div className="rounded-[28px] border border-white/40 bg-white/80 px-8 py-4 text-center text-black shadow-2xl backdrop-blur-md">
+          <p className="mb-2 text-xl font-semibold">Voice Messages</p>
+
+          <h2 className="text-5xl font-black text-blue-600">
+            {voiceMessages}
+          </h2>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="mt-8 grid grid-cols-4 gap-16">
         <Link
           href="/calls"
-          className="bg-black text-white rounded-xl px-5 py-4 text-center font-semibold hover:bg-gray-800"
+          className="rounded-full border-4 border-black bg-blue-100/95 px-6 py-3 text-center text-xl font-semibold text-black shadow-lg hover:bg-cyan-200"
         >
           View Calls
         </Link>
 
         <Link
           href="/messages"
-          className="bg-white border rounded-xl px-5 py-4 text-center font-semibold hover:bg-gray-50"
+          className="rounded-full border-4 border-black bg-blue-100/95 px-6 py-3 text-center text-xl font-semibold text-black shadow-lg hover:bg-cyan-200"
         >
           View Voice Messages
         </Link>
 
         <Link
           href="/missed"
-          className="bg-white border rounded-xl px-5 py-4 text-center font-semibold hover:bg-gray-50"
+          className="rounded-full border-4 border-black bg-blue-100/95 px-6 py-3 text-center text-xl font-semibold text-black shadow-lg hover:bg-cyan-200"
         >
           View Missed Calls
         </Link>
 
         <Link
           href="/settings"
-          className="bg-white border rounded-xl px-5 py-4 text-center font-semibold hover:bg-gray-50"
+          className="rounded-full border-4 border-black bg-blue-100/95 px-6 py-3 text-center text-xl font-semibold text-black shadow-lg hover:bg-cyan-200"
         >
           Go to Settings
         </Link>
       </div>
 
-      <div className="mt-10 bg-white rounded-2xl shadow p-6">
-        <h2 className="text-2xl font-bold mb-4">Recent Calls</h2>
+      <div className="mt-8">
+        <h2 className="mb-4 text-4xl font-semibold text-cyan-100 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+          Recent Calls
+        </h2>
 
         {recentCalls.length === 0 && (
-          <p className="text-gray-500">No recent calls found.</p>
+          <div className="rounded-[28px] border-4 border-black bg-white/65 p-6 text-black backdrop-blur-md">
+            No recent calls found.
+          </div>
         )}
 
         <div className="space-y-3">
           {recentCalls.map((call) => (
-            <div key={call.id} className="border rounded-xl p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold">
-                    {call.customer_name || "Phone Caller"}
-                  </p>
+            <div
+              key={call.id}
+              className="relative rounded-[28px] border-4 border-black bg-white/65 px-7 py-4 text-black shadow-2xl backdrop-blur-md"
+            >
+              <div className="pr-48">
+                <p className="font-semibold">
+                  {call.customer_name || "Phone Caller"}
+                </p>
 
-                  <p className="text-gray-500">
-                    {call.phone_number || "No phone number"}
-                  </p>
+                <p>{call.phone_number || "No phone number"}</p>
 
-                  <p className="text-sm text-gray-400 mt-1">
-                    {formatCallTime(call.created_at)}
-                  </p>
-                </div>
+                <p>{formatCallTime(call.created_at)}</p>
 
-                <span
-                  className={`text-sm font-semibold px-3 py-1 rounded-full ${getStatusBadgeClass(
-                    call.status
-                  )}`}
+                <p className="mt-1">
+                  {call.summary || call.transcript || "No summary available."}
+                </p>
+
+                <p
+                  className={`mt-3 text-2xl font-black tracking-widest ${
+                    call.reviewed ? "text-lime-300" : "text-orange-500"
+                  }`}
                 >
-                  {getStatusLabel(call.status)}
-                </span>
+                  {call.reviewed ? "REVIEWED" : "NOT REVIEWED"}
+                </p>
               </div>
 
-              <p className="text-gray-600 mt-3">
-                {call.summary || call.transcript || "No summary available."}
-              </p>
-
-              <p className="text-sm mt-3">
-                {call.reviewed ? (
-                  <span className="text-green-600 font-semibold">
-                    Reviewed
-                  </span>
-                ) : (
-                  <span className="text-orange-500 font-semibold">
-                    Not Reviewed
-                  </span>
-                )}
+              <p
+                className={`absolute right-8 top-5 text-2xl font-black tracking-widest ${getStatusColor(
+                  call.status
+                )}`}
+              >
+                {getStatusLabel(call.status)}
               </p>
             </div>
           ))}
